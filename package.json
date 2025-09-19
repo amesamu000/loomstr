@@ -1,0 +1,74 @@
+{
+  "name": "loomstr",
+  "version": "1.0.0",
+  "description": "A fast, lightweight TypeScript template engine with slot-based interpolation and powerful filtering",
+  "main": "dist/loomstr.js",
+  "types": "dist/loomstr.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/loomstr.js",
+      "require": "./dist/loomstr.js",
+      "types": "./dist/loomstr.d.ts"
+    }
+  },
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "tsc --noEmit && tsx test/acceptance.test.ts",
+    "test:unit": "tsx test/unit.test.ts",
+    "test:integration": "tsx test/integration.test.ts",
+    "test:performance": "tsx test/performance.test.ts",
+    "test:all": "npm run test && npm run test:unit && npm run test:integration",
+    "test:coverage": "c8 --reporter=lcov --reporter=text npm run test:all",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint src/**/*.ts test/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts test/**/*.ts --fix",
+    "benchmark": "tsx benchmark.ts > benchmark-results.txt 2>&1 || echo 'Benchmark completed'",
+    "dev": "tsx --watch src/loomstr.ts",
+    "clean": "rm -rf dist coverage benchmark-results.txt",
+    "prepublishOnly": "npm run clean && npm run build && npm run test:all",
+    "format": "prettier --write src/**/*.ts test/**/*.ts",
+    "format:check": "prettier --check src/**/*.ts test/**/*.ts"
+  },
+  "keywords": [
+    "template",
+    "templating",
+    "template-engine",
+    "typescript",
+    "slots",
+    "interpolation",
+    "filters",
+    "fast",
+    "lightweight",
+    "performance"
+  ],
+  "author": "MegalithOfficial",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MegalithOfficial/loomstr.git"
+  },
+  "bugs": {
+    "url": "https://github.com/MegalithOfficial/loomstr/issues"
+  },
+  "homepage": "https://github.com/MegalithOfficial/loomstr#readme",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.5.1",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "audit-ci": "^6.6.1",
+    "c8": "^8.0.1",
+    "eslint": "^8.57.0",
+    "prettier": "^3.0.0",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  }
+}

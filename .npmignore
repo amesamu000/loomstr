@@ -1,0 +1,83 @@
+# Source files (only dist should be published)
+src/
+tsconfig.json
+.eslintrc.js
+.prettierrc
+
+# Tests
+test/
+*.test.ts
+*.spec.ts
+coverage/
+
+# Development and build tools
+.github/
+node_modules/
+.git/
+.gitignore
+
+# Benchmark and performance files
+benchmark*.ts
+benchmark*.js
+benchmark-results.*
+performance-*.log
+
+# Documentation (except essential ones)
+CONTRIBUTING.md
+.vscode/
+.idea/
+
+# Temporary and cache files
+*.log
+*.tmp
+*.temp
+.cache/
+.tmp/
+.temp/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~
+
+# Lock files (let users choose their package manager)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+bun.lockb
+
+# Environment files
+.env
+.env.*
+
+# CI/CD and development configs
+.travis.yml
+.circle.yml
+.circleci/
+.gitlab-ci.yml
+.jenkins/
+.github/
+
+# Other development files
+*.tgz
+audit-ci.json
+.nyc_output/
+.c8_output/
+
+# Include these essential files
+!README.md
+!LICENSE
+!CHANGELOG.md
+!package.json
+
+src/
+test/
