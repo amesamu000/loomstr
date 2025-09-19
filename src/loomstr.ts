@@ -109,3 +109,7 @@ const loom = {
 };
 
 export default loom;
+
+// CommonJS compatibility
+module.exports = loom;
+module.exports.default = loom;

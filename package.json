@@ -1,14 +1,15 @@
 {
   "name": "loomstr",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "A fast, lightweight TypeScript template engine with slot-based interpolation and powerful filtering",
-  "main": "dist/loomstr.js",
-  "types": "dist/loomstr.d.ts",
+  "main": "dist/src/loomstr.js",
+  "types": "dist/src/loomstr.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/loomstr.js",
-      "require": "./dist/loomstr.js",
-      "types": "./dist/loomstr.d.ts"
+      "import": "./dist/src/loomstr.js",
+      "require": "./dist/src/loomstr.js",
+      "types": "./dist/src/loomstr.d.ts",
+      "default": "./dist/src/loomstr.js"
     }
   },
   "files": [

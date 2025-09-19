@@ -20,6 +20,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added integration tests for real-world path filter scenarios
 - Improved built-in filter documentation
 
+### Fixed
+- **CommonJS Compatibility**: Fixed module exports to work properly with both `require()` and `import`
+  - Added `module.exports` compatibility for CommonJS users
+  - Fixed "TypeError: loom.compile is not a function" when using `require()`
+  - Both `const loom = require('loomstr')` and `import loom from 'loomstr'` now work correctly
+
+## [1.0.1] - 2025-09-19
+
+### Fixed
+- Build configuration and export improvements
+
 ## [1.0.0] - 2025-09-19
 
 ### Added
