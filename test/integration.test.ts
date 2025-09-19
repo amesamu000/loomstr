@@ -131,4 +131,67 @@ assert.equal(redacted, `[INFO] user=██ msg=ok ctx={"ip":"127.0.0.1"}`);
   assert.equal(arrayResult, 'First item: apple');
 }
 
+/* ================================================================
+ * 7) map and join filter integration testing
+ * ================================================================ */
+
+{
+  // E-commerce shopping cart summary
+  const cartTemplate = loom.compile(
+    'Cart Summary:\n{items|map#item => - $item.name$: $item.price$ x $item.quantity$\n|join}\nTotal items: {totalItems}'
+  );
+  
+  const cartData = {
+    items: [
+      { name: 'Laptop', price: '$999', quantity: 1 },
+      { name: 'Mouse', price: '$25', quantity: 2 },
+      { name: 'Keyboard', price: '$75', quantity: 1 }
+    ],
+    totalItems: 4
+  };
+  
+  const cartResult = cartTemplate.render(cartData as any, { asString: String });
+  const expectedCart = `Cart Summary:
+- Laptop: $999 x 1
+- Mouse: $25 x 2
+- Keyboard: $75 x 1
+Total items: 4`;
+  assert.equal(cartResult, expectedCart);
+
+  // API response formatting for user list
+  const userListTemplate = loom.compile('Users: {users|map#user => $user.firstName$ $user.lastName$|join#, }');
+  const userListData = {
+    users: [
+      { firstName: 'John', lastName: 'Doe' },
+      { firstName: 'Jane', lastName: 'Smith' },
+      { firstName: 'Bob', lastName: 'Johnson' }
+    ]
+  };
+  
+  const userListResult = userListTemplate.render(userListData as any, { asString: String });
+  assert.equal(userListResult, 'Users: John Doe, Jane Smith, Bob Johnson');
+
+  // Log formatting with structured data
+  const logTemplate = loom.compile('[{timestamp}] {level}: {events|map#event => $event.type$($event.value$)|join# | }');
+  const logData = {
+    timestamp: '2025-09-20T10:30:00Z',
+    level: 'INFO',
+    events: [
+      { type: 'click', value: 'button1' },
+      { type: 'scroll', value: '50%' },
+      { type: 'hover', value: 'menu' }
+    ]
+  };
+  
+  const logResult = logTemplate.render(logData as any, { asString: String });
+  assert.equal(logResult, '[2025-09-20T10:30:00Z] INFO: click(button1) | scroll(50%) | hover(menu)');
+
+  // Simple tag list with HTML-like output
+  const tagTemplate = loom.compile('Tags: {tags|map#tag => <span>$tag$</span>|join}');
+  const tagData = { tags: ['JavaScript', 'TypeScript', 'React'] };
+  
+  const tagResult = tagTemplate.render(tagData as any, { asString: String });
+  assert.equal(tagResult, 'Tags: <span>JavaScript</span><span>TypeScript</span><span>React</span>');
+}
+
 console.log('integration.test.ts passed ✅');

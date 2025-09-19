@@ -16,6 +16,8 @@ import type { FilterFn, TemplatePolicy, ResolvedPolicy } from './types';
  * - `path`: Extract nested properties using dot notation with optional fallback
  * - `pad`: Right-pad with character to specified length
  * - `fixed`: Format number to fixed decimal places
+ * - `map`: Transform array elements using a template expression
+ * - `join`: Join array elements into a string with optional separator
  */
 export const builtinFilters: Record<string, FilterFn> = Object.freeze({
   /** Convert value to uppercase string */
@@ -120,6 +122,105 @@ export const builtinFilters: Record<string, FilterFn> = Object.freeze({
     if (!Number.isFinite(n)) throw new Error(`fixed: non-numeric value ${String(v)}`);
     if (!Number.isInteger(k) || k < 0) throw new Error(`fixed: invalid digits "${d}"`);
     return n.toFixed(k);
+  },
+
+  /**
+   * Map over array elements using a template expression.
+   * Usage: {items|map#item => - $item.title$ x$item.qty$\n} returns array
+   * Usage: {items|map#item => - $item.title$ x$item.qty$\n,} joins with empty string
+   * Usage: {items|map#item => $item.name$, } joins with comma-space
+   * @param value - Array to map over
+   * @param templateArg - Template expression with variable binding using $ syntax
+   * @param joinArg - Optional join separator. If provided, returns joined string instead of array
+   */
+  map: (value, templateArg, joinArg) => {
+    if (!templateArg) {
+      throw new Error('map: missing template expression argument');
+    }
+
+    if (!Array.isArray(value)) {
+      throw new Error('map: value must be an array');
+    }
+
+    // Parse template expression: "varName => template"
+    const arrowIndex = templateArg.indexOf('=>');
+    if (arrowIndex === -1) {
+      throw new Error('map: template expression must use => syntax (e.g., "item => - $item.name$")');
+    }
+
+    const varName = templateArg.slice(0, arrowIndex).trim();
+    const templateStr = templateArg.slice(arrowIndex + 2).trim();
+
+    if (!varName) {
+      throw new Error('map: missing variable name before =>');
+    }
+
+    if (!templateStr) {
+      throw new Error('map: missing template after =>');
+    }
+
+    // Validate variable name
+    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(varName)) {
+      throw new Error(`map: invalid variable name "${varName}"`);
+    }
+
+    // Process template with $varName$ syntax instead of {varName}
+    const results: string[] = [];
+    
+    for (const item of value) {
+      // Simple template replacement - replace $varName.property$ patterns
+      let rendered = templateStr;
+      
+      // Handle $varName$ direct replacement
+      const directPattern = new RegExp(`\\$${varName}\\$`, 'g');
+      rendered = rendered.replace(directPattern, String(item));
+      
+      // Handle $varName.property$ property access
+      const propPattern = new RegExp(`\\$${varName}\\.(\\w+(?:\\.\\w+)*)\\$`, 'g');
+      rendered = rendered.replace(propPattern, (match, propPath) => {
+        const props = propPath.split('.');
+        let current: unknown = item;
+        
+        for (const prop of props) {
+          if (current === null || current === undefined) {
+            return '';
+          }
+          if (typeof current === 'object' && prop in (current as Record<string, unknown>)) {
+            current = (current as Record<string, unknown>)[prop];
+          } else {
+            return '';
+          }
+        }
+        
+        return String(current ?? '');
+      });
+      
+      // Handle escaped newlines and tabs
+      rendered = rendered.replace(/\\n/g, '\n');
+      rendered = rendered.replace(/\\t/g, '\t');
+      
+      results.push(rendered);
+    }
+
+    // If join argument is provided, join the results
+    if (joinArg !== undefined) {
+      return results.join(joinArg);
+    }
+
+    return results;
+  },
+
+  /**
+   * Join array elements into a string with optional separator.
+   * Usage: {array|join} or {array|join#, }
+   * @param value - Array to join
+   * @param separator - Join separator (defaults to empty string)
+   */
+  join: (value, separator = '') => {
+    if (!Array.isArray(value)) {
+      throw new Error('join: value must be an array');
+    }
+    return value.map(v => String(v)).join(separator);
   },
 });
 

@@ -99,6 +99,80 @@ function makeSink() {
 }
 
 /* ================================================================
+ * 1.6) Built-in map and join filter testing
+ * ================================================================ */
+
+{
+  const policy = { asString: String };
+
+  // Test basic map functionality with automatic join
+  const mapTemplate = loom.compile('items={items|map#item => - $item.title$ x$item.qty$\\n,}');
+  const mapData = {
+    items: [
+      { title: 'Apple', qty: 5 },
+      { title: 'Orange', qty: 3 },
+      { title: 'Banana', qty: 8 },
+    ],
+  };
+  const mapResult = mapTemplate.render(mapData as any, policy);
+  assert.equal(mapResult, 'items=- Apple x5\n- Orange x3\n- Banana x8\n');
+
+  // Test map with join separator
+  const listTemplate = loom.compile('list={names|map#name => $name$, }');
+  const listData = { names: ['Alice', 'Bob', 'Charlie'] };
+  const listResult = listTemplate.render(listData as any, policy);
+  assert.equal(listResult, 'list=Alice, Bob, Charlie');
+
+  // Test map with nested property access and pipe separator
+  const nestedTemplate = loom.compile('users={users|map#user => $user.profile.name$, | }');
+  const nestedData = {
+    users: [
+      { profile: { name: 'John' } },
+      { profile: { name: 'Jane' } },
+      { profile: { name: 'Bob' } },
+    ],
+  };
+  const nestedResult = nestedTemplate.render(nestedData as any, policy);
+  assert.equal(nestedResult, 'users=John | Jane | Bob');
+
+  // Test map returning array (no join argument)
+  const arrayTemplate = loom.compile('items={items|map#item => $item$}');
+  const arrayResult = arrayTemplate.render({ items: ['a', 'b', 'c'] }, policy);
+  assert.equal(arrayResult, 'items=a,b,c'); // Default array-to-string conversion
+
+  // Test map error cases
+  const mapErrors = loom.compile('bad={items|map}');
+  assert.throws(
+    () => mapErrors.render({ items: [] }, policy),
+    /map: missing template expression argument/
+  );
+
+  const mapNoArrow = loom.compile('bad={items|map#item}');
+  assert.throws(
+    () => mapNoArrow.render({ items: [] }, policy),
+    /map: template expression must use => syntax/
+  );
+
+  const mapNotArray = loom.compile('bad={notarray|map#item => $item$}');
+  assert.throws(
+    () => mapNotArray.render({ notarray: 'string' }, policy),
+    /map: value must be an array/
+  );
+
+  // Test join error cases
+  const joinNotArray = loom.compile('bad={notarray|join}');
+  assert.throws(
+    () => joinNotArray.render({ notarray: 'string' }, policy),
+    /join: value must be an array/
+  );
+
+  // Test simple join without map
+  const simpleJoin = loom.compile('nums={numbers|join#-}');
+  const joinResult = simpleJoin.render({ numbers: [1, 2, 3, 4] }, policy);
+  assert.equal(joinResult, 'nums=1-2-3-4');
+}
+
+/* ================================================================
  * 2) custom json filter + toParts + toPartsRaw
  * ================================================================ */
 
