@@ -23,15 +23,21 @@
 
 export type {
   SlotKeys,
+  ExactParamsForKeys,
+  ExactParamsFor,
   FilterFn,
   FilterDescriptor,
   TemplatePolicy,
+  ResolvedPolicy,
   SlotDescriptor,
   TemplateParts,
   TemplatePartsRaw,
   Template,
   BoundTemplate,
+  TEMPLATE_BRAND_TYPE,
 } from './types.js';
+
+export { TEMPLATE_BRAND } from './types.js';
 
 import { compile, concat } from './template.js';
 import { defaultPolicy } from './filters.js';
