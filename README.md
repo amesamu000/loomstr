@@ -58,19 +58,37 @@ Slots and filters are trimmed, so `{ name | upper }` is valid. Filter arguments 
 
 ## Built-in Filters
 
-| Filter | Description |
-| --- | --- |
-| `upper` | Uppercase string conversion |
-| `lower` | Lowercase string conversion |
-| `trim` | Remove whitespace from both ends of string |
-| `slice` | Extract substring with start and optional end positions |
-| `wrap` | Wrap string with prefix and optional suffix |
-| `json` | `JSON.stringify(value)`; supply `{slot|json#4}` (or any non-negative integer) to pretty-print |
-| `path` | Traverse nested structures via dot notation with optional fallback `{user|path#profile.email,'n/a'}` |
-| `pad` | Right-pad value to a length: `{id|pad#5,0}` → `00042` |
-| `fixed` | Format numbers with fixed decimals: `{price|fixed#2}` |
-| `map` | Transform array elements using template expressions with variable substitution |
-| `join` | Join array elements into a string with optional separator |
+| Filter | Description | Examples |
+| --- | --- | --- |
+| `upper` | Uppercase string conversion | `{text|upper}` → `"HELLO"` |
+| `lower` | Lowercase string conversion | `{text|lower}` → `"hello"` |
+| `trim` | Remove whitespace from both ends | `{text|trim}` → `"hello"` (from `"  hello  "`) |
+| `slice` | Extract substring with start/end positions | `{text|slice#6}`, `{text|slice#0,5}` |
+| `wrap` | Wrap string with prefix and suffix | `{text|wrap#"[","]"}`→ `"[hello]"`, `{text|wrap#"*"}` → `"*hello*"` |
+| `json` | JSON stringify with optional pretty-printing | `{data|json}`, `{data|json#2}` for 2-space indent |
+| `path` | Deep object/array traversal with dot notation | `{user|path#profile.name}`, `{items|path#0.title}` |
+| `pad` | Right-pad to specified length with fill character | `{id|pad#5,0}` → `"00042"`, `{text|pad#10," "}` |
+| `fixed` | Format numbers to fixed decimal places | `{price|fixed#2}` → `"99.50"`, `{value|fixed#0}` |
+| `map` | Transform array elements using template expressions | `{items|map#item => $item.name$: $item.price$}` |
+| `join` | Join array elements with optional separator | `{array|join#", "}`, `{array|join}` (no separator) |
+
+### Filter Chaining
+
+Filters can be chained using the pipe (`|`) operator for powerful data transformations:
+
+```ts
+// Chain multiple string filters
+const result = loom.compile('{text|trim|upper|wrap#">>>","<<<"}')
+  .render({ text: '  hello  ' }); // ">>>HELLO<<<"
+
+// Complex array processing with chaining
+const list = loom.compile('{users|map#u => $u.name$|join#", "|upper}')
+  .render({ users: [{name: 'alice'}, {name: 'bob'}] }); // "ALICE, BOB"
+
+// Multi-step data transformation
+const formatted = loom.compile('{items|map#item => [$item$]|join#" -> "|slice#0,20}')
+  .render({ items: ['a', 'b', 'c'] }); // "[a] -> [b] -> [c]"
+```
 
 Custom filters are merged into the policy; built-ins remain available unless explicitly overwritten.
 
@@ -145,31 +163,92 @@ joinTemplate.render({ names: ['Alice', 'Bob', 'Charlie'] });
 // Result: "list=Alice, Bob, Charlie"
 ```
 
-### Filter Chaining
+### Real-World Examples
 
-Filters can be chained together using the pipe (`|`) operator:
+#### E-commerce Applications
 
 ```ts
-// Chain multiple filters
-const chainTemplate = loom.compile('result={text|trim|upper|wrap#">>>","<<<"}');
-chainTemplate.render({ text: '  hello  ' }); // "result=>>>HELLO<<<"
+// Shopping cart summary
+const cartTemplate = loom.compile(`
+Cart Summary:
+{items|map#item => - $item.name$: $item.price$ x $item.quantity$|join#\n}
+Total items: {totalItems}
+`);
 
-// Complex array processing with chaining
-const complexTemplate = loom.compile('users={users|map#u => $u.name$|join#", "}');
-const users = [
-  { name: 'Alice' },
-  { name: 'Bob' },
-  { name: 'Charlie' }
-];
-complexTemplate.render({ users }); // "users=Alice, Bob, Charlie"
+const cartData = {
+  items: [
+    { name: 'Laptop', price: '$999', quantity: 1 },
+    { name: 'Mouse', price: '$25', quantity: 2 },
+    { name: 'Keyboard', price: '$75', quantity: 1 }
+  ],
+  totalItems: 4
+};
 
-// Advanced nested processing
-const advancedTemplate = loom.compile('summary={items|map#item => $item.title$: $item.price|fixed#2$|join#" | "}');
-const products = [
-  { title: 'Laptop', price: 999.99 },
-  { title: 'Mouse', price: 29.5 }
+// Output:
+// Cart Summary:
+// - Laptop: $999 x 1
+// - Mouse: $25 x 2  
+// - Keyboard: $75 x 1
+// Total items: 4
+```
+
+#### API Response Formatting
+
+```ts
+// User list for API responses
+const userListTemplate = loom.compile('Users: {users|map#user => $user.firstName$ $user.lastName$|join#", "}');
+const userListData = {
+  users: [
+    { firstName: 'John', lastName: 'Doe' },
+    { firstName: 'Jane', lastName: 'Smith' },
+    { firstName: 'Bob', lastName: 'Johnson' }
+  ]
+};
+// Output: "Users: John Doe, Jane Smith, Bob Johnson"
+```
+
+#### Structured Logging
+
+```ts
+// Advanced log formatting with event tracking
+const logTemplate = loom.compile('[{timestamp}] {level}: {events|map#event => $event.type$($event.value$)|join#" | "}');
+const logData = {
+  timestamp: '2025-09-20T10:30:00Z',
+  level: 'INFO',
+  events: [
+    { type: 'click', value: 'button1' },
+    { type: 'scroll', value: '50%' },
+    { type: 'hover', value: 'menu' }
+  ]
+};
+// Output: "[2025-09-20T10:30:00Z] INFO: click(button1) | scroll(50%) | hover(menu)"
+```
+
+#### HTML/XML Generation
+
+```ts
+// Tag generation for web applications
+const tagTemplate = loom.compile('Tags: {tags|map#tag => <span>$tag$</span>|join}');
+const tagData = { tags: ['JavaScript', 'TypeScript', 'React'] };
+// Output: "Tags: <span>JavaScript</span><span>TypeScript</span><span>React</span>"
+```
+
+#### Advanced Filter Chaining
+
+```ts
+// Complex data transformation pipeline
+const complexTemplate = loom.compile('{data|map#item => [$item$]|join#" -> "|upper|slice#0,30|wrap#">>>","<<<"}');
+complexTemplate.render({ data: ['alpha', 'beta', 'gamma'] });
+// Output: ">>>[ALPHA] -> [BETA] -> [GAMMA]<<<"
+
+// Financial report formatting
+const financialTemplate = loom.compile('Revenue: {quarters|map#q => $q.revenue$|join#" + "|slice#0,50|wrap#"Total: $"}');
+const quarters = [
+  { revenue: 250000 },
+  { revenue: 275000 },
+  { revenue: 310000 }
 ];
-// Note: This requires processing item properties individually
+// Processes quarterly revenue with mathematical formatting
 ```
 
 ## Rendering Policies & Custom Filters

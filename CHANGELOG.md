@@ -8,49 +8,112 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Filter Chaining**: Filters can now be chained using multiple pipe operators
-  - Syntax: `{value|filter1|filter2|filter3}` applies filters left-to-right
-  - Full parser support for unlimited filter chains
-  - Comprehensive TypeScript support for chained filters
-  - Extensive test coverage for complex chaining scenarios
+- **🔗 Filter Chaining System**: Complete infrastructure for chaining multiple filters
+  - Syntax: `{value|filter1|filter2|filter3}` applies filters left-to-right  
+  - Parser completely rewritten to support unlimited filter chains
+  - Full TypeScript support with proper type inference for chained operations
+  - Comprehensive error handling for malformed filter chains
+  - Extensive test coverage including edge cases and complex scenarios
 
-- **New String Manipulation Filters**:
-  - `trim`: Remove whitespace from both ends of string
-  - `slice`: Extract substring with start and optional end positions
-    - Usage: `{text|slice#6}` or `{text|slice#0,5}`
-  - `wrap`: Wrap string with prefix and optional suffix
-    - Usage: `{text|wrap#"[","]"}` or `{text|wrap#"*"}` (same prefix/suffix)
+- **🎯 New String Manipulation Filters**:
+  - `trim`: Remove whitespace from both ends of strings
+    - Example: `{text|trim}` transforms `"  hello  "` → `"hello"`
+  - `slice`: Extract substrings with start and optional end positions
+    - Usage: `{text|slice#6}` (from index 6), `{text|slice#0,5}` (range 0-5)
+    - Supports negative indices: `{text|slice#-5}` (last 5 characters)
+  - `wrap`: Wrap strings with prefix and optional suffix
+    - Usage: `{text|wrap#"[","]"}` → `"[content]"` 
+    - Same prefix/suffix: `{text|wrap#"*"}` → `"*content*"`
+    - Advanced wrapping: `{text|wrap#">>>","<<<"}` → `">>>content<<<"`
 
-- **Enhanced Array Processing Filters**:
-  - `map`: Transform array elements using template expressions
+- **📊 Enhanced Array Processing Filters**:
+  - `map`: Transform array elements using template expressions with variable substitution
     - Syntax: `{items|map#item => - $item.title$ x$item.qty$\n}`
-    - Supports property access with `$variable.property$` syntax
+    - Supports deep property access: `$item.user.profile.name$`
+    - Escape sequence processing: `\n`, `\t`, `\r` in templates
     - Returns arrays that can be chained with other filters
-  - `join`: Join array elements with optional separator
-    - Usage: `{array|join#", "}` or `{array|join}` (no separator)
-    - Works standalone or chained after map filter
+    - Real-world example: Shopping cart item formatting
+  - `join`: Join array elements into strings with customizable separators
+    - Usage: `{array|join#", "}` (comma-separated), `{array|join#"\n"}` (newlines)
+    - No separator: `{array|join}` (concatenate directly)
+    - Works seamlessly after map operations for complete data pipelines
 
-- **Advanced Template Examples**: Added comprehensive examples showing:
-  - Filter chaining for complex data transformations
-  - Array processing with map and join combinations
-  - Multi-step text processing workflows
-  - Real-world use cases for all new filters
+- **🏗️ Real-World Template Examples**: Added comprehensive examples covering:
+  - **E-commerce**: Shopping cart summaries, product catalogs, pricing displays
+  - **API Responses**: User lists, data formatting, structured outputs
+  - **Logging Systems**: Event tracking, structured logs, multi-dimensional data
+  - **HTML/XML Generation**: Tag creation, markup generation, templating
+  - **Financial Reports**: Revenue calculations, multi-step data processing
+  - **Business Intelligence**: Employee reports, department analysis, metrics dashboards
+
+- **🧪 Comprehensive Testing Suite**:
+  - Unit tests covering all individual filters with edge cases
+  - Integration tests with real-world scenarios (e-commerce, logging, API responses)
+  - Complex chaining tests with 5+ filter combinations
+  - Edge case testing with null/undefined values, empty arrays
+  - Performance testing with large datasets and complex templates
+  - Demo showcasing nuclear complexity with multi-dimensional data processing
 
 ### Enhanced
-- **Parser Infrastructure**: Complete rewrite to support filter chaining
-  - Updated `FilterDescriptor` interface for chain support
-  - Enhanced slot parsing to handle multiple filter segments
-  - Improved error handling for malformed filter chains
+- **🚀 Parser Infrastructure**: Complete architecture overhaul for filter chaining
+  - Rebuilt `parseSlotBody` function with state machine approach
+  - Updated `FilterDescriptor` interface supporting chain metadata
+  - Enhanced slot parsing with proper argument isolation between filters
+  - Robust error handling with detailed error messages for debugging
+  - Optimized performance for complex filter chains
+  
+- **🔧 Development Experience**: Improved tooling and error handling
+  - Better TypeScript integration with exact parameter inference
+  - Enhanced error messages showing filter context and position
+  - Comprehensive validation functions: `missingKeys`, `extraKeys`, `validate`
+  - Template composition utilities: `concat`, `bind`, `withDefaultPolicy`
+  
+- **📚 Documentation**: Extensive updates with practical examples
+  - Real-world use cases for every filter combination
+  - Step-by-step guides for complex data transformations
+  - Performance considerations and best practices
+  - Migration guide for upgrading existing templates
   
 ### Fixed
-- **Template Parsing**: Improved escape sequence handling in map filter templates
-  - Fixed `\n` and `\t` processing in template expressions
-  - Better handling of complex template arguments
+- **🔨 Parser Argument Handling**: Resolved critical filter chaining bug
+  - Fixed double `pushArg()` calls causing empty arguments in filter chains
+  - Improved escape sequence processing in map filter templates (`\n`, `\t`, `\r`)
+  - Better handling of pipe characters in filter arguments
+  - Resolved template argument truncation in chained filter scenarios
+  
+- **💡 Template Processing**: Enhanced robustness and reliability
+  - Fixed newline preservation in map filter template expressions
+  - Improved quoted string handling in complex argument scenarios
+  - Better error recovery for malformed filter expressions
   
 ### Known Issues
-- Parser has limitations with quoted strings containing spaces in filter arguments
-  - Workaround: Use quotes without spaces or escape sequences where possible
-  - This will be addressed in a future release
+- **⚠️ Parser Limitations**: Some edge cases with complex quoted arguments
+  - Limited support for pipe characters (`|`) within quoted filter arguments
+  - Workaround: Use alternative separators or escape sequences
+  - Improvement planned for next major release
+  
+- **🔍 Performance**: Complex filter chains may impact performance
+  - Templates with 5+ chained filters on large datasets
+  - Consider breaking complex chains into multiple template steps for better performance
+  - Fixed double `pushArg()` calls causing empty arguments in filter chains
+  - Improved escape sequence processing in map filter templates (`\n`, `\t`, `\r`)
+  - Better handling of pipe characters in filter arguments
+  - Resolved template argument truncation in chained filter scenarios
+  
+- **💡 Template Processing**: Enhanced robustness and reliability
+  - Fixed newline preservation in map filter template expressions
+  - Improved quoted string handling in complex argument scenarios
+  - Better error recovery for malformed filter expressions
+  
+### Known Issues
+- **⚠️ Parser Limitations**: Some edge cases with complex quoted arguments
+  - Limited support for pipe characters (`|`) within quoted filter arguments
+  - Workaround: Use alternative separators or escape sequences
+  - Improvement planned for next major release
+  
+- **🔍 Performance**: Complex filter chains may impact performance
+  - Templates with 5+ chained filters on large datasets
+  - Consider breaking complex chains into multiple template steps for better performance
 
 ### Previous Releases
 

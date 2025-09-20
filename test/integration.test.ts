@@ -138,7 +138,7 @@ assert.equal(redacted, `[INFO] user=██ msg=ok ctx={"ip":"127.0.0.1"}`);
 {
   // E-commerce shopping cart summary
   const cartTemplate = loom.compile(
-    'Cart Summary:\n{items|map#item => - $item.name$: $item.price$ x $item.quantity$\n|join}\nTotal items: {totalItems}'
+    'Cart Summary:\\n{items|map#item => - $item.name$: $item.price$ x $item.quantity$|join#\\n}\\nTotal items: {totalItems}'
   );
   
   const cartData = {
@@ -159,7 +159,7 @@ Total items: 4`;
   assert.equal(cartResult, expectedCart);
 
   // API response formatting for user list
-  const userListTemplate = loom.compile('Users: {users|map#user => $user.firstName$ $user.lastName$|join#, }');
+  const userListTemplate = loom.compile('Users: {users|map#user => $user.firstName$ $user.lastName$|join#", "}');
   const userListData = {
     users: [
       { firstName: 'John', lastName: 'Doe' },
@@ -172,7 +172,7 @@ Total items: 4`;
   assert.equal(userListResult, 'Users: John Doe, Jane Smith, Bob Johnson');
 
   // Log formatting with structured data
-  const logTemplate = loom.compile('[{timestamp}] {level}: {events|map#event => $event.type$($event.value$)|join# | }');
+  const logTemplate = loom.compile('[{timestamp}] {level}: {events|map#event => $event.type$($event.value$)|join#" \\| "}');
   const logData = {
     timestamp: '2025-09-20T10:30:00Z',
     level: 'INFO',
