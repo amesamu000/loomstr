@@ -99,14 +99,14 @@ function makeSink() {
 }
 
 /* ================================================================
- * 1.6) Built-in map and join filter testing
+ * 1.6) Built-in map, join, trim, slice, wrap filter testing
  * ================================================================ */
 
 {
   const policy = { asString: String };
 
-  // Test basic map functionality with automatic join
-  const mapTemplate = loom.compile('items={items|map#item => - $item.title$ x$item.qty$\\n,}');
+  // Test basic map functionality chained with join
+  const mapTemplate = loom.compile('items:\\n{items|map#item => - $item.title$ x$item.qty$|join#\\n}');
   const mapData = {
     items: [
       { title: 'Apple', qty: 5 },
@@ -115,16 +115,16 @@ function makeSink() {
     ],
   };
   const mapResult = mapTemplate.render(mapData as any, policy);
-  assert.equal(mapResult, 'items=- Apple x5\n- Orange x3\n- Banana x8\n');
+  assert.equal(mapResult, 'items:\n- Apple x5\n- Orange x3\n- Banana x8');
 
   // Test map with join separator
-  const listTemplate = loom.compile('list={names|map#name => $name$, }');
+  const listTemplate = loom.compile('list={names|map#name => $name$|join#","}');
   const listData = { names: ['Alice', 'Bob', 'Charlie'] };
   const listResult = listTemplate.render(listData as any, policy);
-  assert.equal(listResult, 'list=Alice, Bob, Charlie');
+  assert.equal(listResult, 'list=Alice,Bob,Charlie');
 
   // Test map with nested property access and pipe separator
-  const nestedTemplate = loom.compile('users={users|map#user => $user.profile.name$, | }');
+  const nestedTemplate = loom.compile('users={users|map#user => $user.profile.name$|join#"|"}');
   const nestedData = {
     users: [
       { profile: { name: 'John' } },
@@ -133,12 +133,32 @@ function makeSink() {
     ],
   };
   const nestedResult = nestedTemplate.render(nestedData as any, policy);
-  assert.equal(nestedResult, 'users=John | Jane | Bob');
+  assert.equal(nestedResult, 'users=John|Jane|Bob');
 
-  // Test map returning array (no join argument)
+  // Test map returning array (no join chained)
   const arrayTemplate = loom.compile('items={items|map#item => $item$}');
   const arrayResult = arrayTemplate.render({ items: ['a', 'b', 'c'] }, policy);
   assert.equal(arrayResult, 'items=a,b,c'); // Default array-to-string conversion
+
+  // Test trim filter
+  const trimTemplate = loom.compile('text={text|trim}');
+  const trimResult = trimTemplate.render({ text: '  hello world  ' }, policy);
+  assert.equal(trimResult, 'text=hello world');
+
+  // Test slice filter
+  const sliceTemplate = loom.compile('part={text|slice#6} full={text|slice#0,5}');
+  const sliceResult = sliceTemplate.render({ text: 'hello world' }, policy);
+  assert.equal(sliceResult, 'part=world full=hello');
+
+  // Test wrap filter with both prefix and suffix
+  const wrapTemplate = loom.compile('wrapped={text|wrap#"[","]"} starred={text|wrap#"*"}');
+  const wrapResult = wrapTemplate.render({ text: 'content' }, policy);
+  assert.equal(wrapResult, 'wrapped=[content] starred=*content*');
+
+  // Test filter chaining
+  const chainTemplate = loom.compile('result={text|trim|upper|wrap#">>>",\"<<<\"}');
+  const chainResult = chainTemplate.render({ text: '  hello  ' }, policy);
+  assert.equal(chainResult, 'result=>>>HELLO<<<');
 
   // Test map error cases
   const mapErrors = loom.compile('bad={items|map}');
@@ -170,6 +190,79 @@ function makeSink() {
   const simpleJoin = loom.compile('nums={numbers|join#-}');
   const joinResult = simpleJoin.render({ numbers: [1, 2, 3, 4] }, policy);
   assert.equal(joinResult, 'nums=1-2-3-4');
+
+  // Test slice error cases
+  const sliceNoStart = loom.compile('bad={text|slice}');
+  assert.throws(
+    () => sliceNoStart.render({ text: 'hello' }, policy),
+    /slice: missing start index argument/
+  );
+
+  const sliceInvalidStart = loom.compile('bad={text|slice#abc}');
+  assert.throws(
+    () => sliceInvalidStart.render({ text: 'hello' }, policy),
+    /slice: invalid start index "abc"/
+  );
+
+  const sliceInvalidEnd = loom.compile('bad={text|slice#1,xyz}');
+  assert.throws(
+    () => sliceInvalidEnd.render({ text: 'hello' }, policy),
+    /slice: invalid end index "xyz"/
+  );
+}
+
+/* ================================================================
+ * 1.7) Filter chaining
+ * ================================================================ */
+
+{
+  const policy = { asString: String };
+
+  const chained = loom.compile('value={name|upper|pad#5,"*"}');
+  const chainedOut = chained.render({ name: 'ab' }, policy);
+  assert.equal(chainedOut, 'value=AB***');
+
+  const customPolicy: TemplatePolicy = {
+    asString: String,
+    filters: {
+      trim: v => String(v).trim(),
+      slice: (v, start = '0', end?: string) => {
+        const s = Number(start);
+        const e = end === undefined || end === '' ? undefined : Number(end);
+        return String(v).slice(s, e);
+      },
+      wrap: (v, left = '[', right = ']') => `${left}${v}${right}`,
+    },
+  };
+
+  const custom = loom.compile('wrapped={value|trim|slice#0,3|wrap#"[", "]"}');
+  const customOut = custom.render({ value: '  abcdef  ' }, customPolicy);
+  assert.equal(customOut, 'wrapped=[abc]');
+
+  const chainParts = custom.toParts({ value: '  abcdef  ' }, customPolicy);
+  const customSlot = chainParts.slots[0];
+  assert.ok(customSlot.filters);
+  assert.deepEqual(customSlot.filters!.map(f => f.name), ['trim', 'slice', 'wrap']);
+  assert.equal(customSlot.filter, 'trim');
+  assert.equal(customSlot.args.length, 0);
+  assert.deepEqual(customSlot.filters![1].args, ['0', '3']);
+
+  const pathUpper = loom.compile('title={items|path#0.title|upper}');
+  const titleOut = pathUpper.render({ items: [{ title: 'widget' }] }, policy);
+  assert.equal(titleOut, 'title=WIDGET');
+
+  const pathParts = pathUpper.toParts({ items: [{ title: 'widget' }] }, policy);
+  const pathSlot = pathParts.slots[0];
+  assert.ok(pathSlot.filters);
+  assert.deepEqual(pathSlot.filters!.map(f => f.name), ['path', 'upper']);
+  assert.equal(pathSlot.filter, 'path');
+  assert.deepEqual(pathSlot.args, ['0.title']);
+
+  const badChain = loom.compile('oops={value|upper|missing}');
+  assert.throws(
+    () => badChain.render({ value: 'x' }, policy),
+    /Unknown filter "missing"/
+  );
 }
 
 /* ================================================================

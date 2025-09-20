@@ -7,11 +7,14 @@ import type { FilterFn, TemplatePolicy, ResolvedPolicy } from './types';
 
 /**
  * Built-in filter functions available in all templates.
- * These filters can be used with the {slot|filter} syntax.
+ * These filters can be used with the {slot|filter} syntax and can be chained.
  *
  * Available filters:
  * - `upper`: Convert to uppercase
  * - `lower`: Convert to lowercase
+ * - `trim`: Remove whitespace from both ends
+ * - `slice`: Extract substring with start and optional end positions
+ * - `wrap`: Wrap string with prefix and suffix
  * - `json`: JSON stringify the value (optionally pretty-print with {slot|json#2})
  * - `path`: Extract nested properties using dot notation with optional fallback
  * - `pad`: Right-pad with character to specified length
@@ -25,6 +28,49 @@ export const builtinFilters: Record<string, FilterFn> = Object.freeze({
 
   /** Convert value to lowercase string */
   lower: v => String(v).toLowerCase(),
+
+  /** Trim whitespace from both ends of string */
+  trim: v => String(v).trim(),
+
+  /**
+   * Extract substring with start position and optional end position.
+   * Usage: {text|slice#5} starts at index 5, {text|slice#2,8} from index 2 to 8
+   * @param v - Value to slice
+   * @param startArg - Start index (as string)
+   * @param endArg - Optional end index (as string)
+   */
+  slice: (v, startArg, endArg) => {
+    if (startArg === undefined) {
+      throw new Error('slice: missing start index argument');
+    }
+    const start = Number(startArg);
+    if (!Number.isInteger(start)) {
+      throw new Error(`slice: invalid start index "${startArg}"`);
+    }
+    const s = String(v);
+    if (endArg === undefined) {
+      return s.slice(start);
+    }
+    const end = Number(endArg);
+    if (!Number.isInteger(end)) {
+      throw new Error(`slice: invalid end index "${endArg}"`);
+    }
+    return s.slice(start, end);
+  },
+
+  /**
+   * Wrap string with prefix and optional suffix.
+   * Usage: {text|wrap#"[","]"} wraps with brackets, {text|wrap#"*"} wraps with asterisks
+   * @param v - Value to wrap
+   * @param prefixArg - Prefix string
+   * @param suffixArg - Optional suffix string (defaults to prefix)
+   */
+  wrap: (v, prefixArg = '', suffixArg) => {
+    const s = String(v);
+    const prefix = prefixArg || '';
+    const suffix = suffixArg !== undefined ? suffixArg : prefix;
+    return prefix + s + suffix;
+  },
 
   /** JSON stringify the value with optional indentation */
   json: (v, indentArg) => {
@@ -126,14 +172,12 @@ export const builtinFilters: Record<string, FilterFn> = Object.freeze({
 
   /**
    * Map over array elements using a template expression.
-   * Usage: {items|map#item => - $item.title$ x$item.qty$\n} returns array
-   * Usage: {items|map#item => - $item.title$ x$item.qty$\n,} joins with empty string
-   * Usage: {items|map#item => $item.name$, } joins with comma-space
+   * Usage: {items|map#item => - $item.title$ x$item.qty$\n} returns array of strings
+   * Can be chained with join: {items|map#item => $item.name$|join#, }
    * @param value - Array to map over
    * @param templateArg - Template expression with variable binding using $ syntax
-   * @param joinArg - Optional join separator. If provided, returns joined string instead of array
    */
-  map: (value, templateArg, joinArg) => {
+  map: (value, templateArg) => {
     if (!templateArg) {
       throw new Error('map: missing template expression argument');
     }
@@ -164,12 +208,17 @@ export const builtinFilters: Record<string, FilterFn> = Object.freeze({
       throw new Error(`map: invalid variable name "${varName}"`);
     }
 
-    // Process template with $varName$ syntax instead of {varName}
+    // Process template with $varName$ syntax
     const results: string[] = [];
     
     for (const item of value) {
       // Simple template replacement - replace $varName.property$ patterns
       let rendered = templateStr;
+      
+      // Handle escaped newlines and tabs FIRST (before variable substitution)
+      rendered = rendered.replace(/\\n/g, '\n');
+      rendered = rendered.replace(/\\t/g, '\t');
+      rendered = rendered.replace(/\\r/g, '\r');
       
       // Handle $varName$ direct replacement
       const directPattern = new RegExp(`\\$${varName}\\$`, 'g');
@@ -195,16 +244,7 @@ export const builtinFilters: Record<string, FilterFn> = Object.freeze({
         return String(current ?? '');
       });
       
-      // Handle escaped newlines and tabs
-      rendered = rendered.replace(/\\n/g, '\n');
-      rendered = rendered.replace(/\\t/g, '\t');
-      
       results.push(rendered);
-    }
-
-    // If join argument is provided, join the results
-    if (joinArg !== undefined) {
-      return results.join(joinArg);
     }
 
     return results;

@@ -32,6 +32,15 @@ const rendered = logTemplate.render({
 });
 
 // rendered → "[INFO] user=MEGALITH ctx={\n  \"requestId\": \"42\",\n  \"path\": \"/healthz\"\n}"
+
+// Array processing with map and join
+const arrayTemplate = loom.compile('Array: {arr|join#","}');
+arrayTemplate.render({ arr: [1, 2, 3] }); // "Array: 1,2,3"
+
+// Nested array mapping
+const mapTemplate = loom.compile('Items: {items|map#item => $item.val$|join#"-"}');
+const items = [{ val: 'a' }, { val: 'b' }];
+mapTemplate.render({ items }); // "Items: a-b"
 ```
 
 ## Template Syntax
@@ -41,10 +50,11 @@ const rendered = logTemplate.render({
 {name|filter}          apply a filter
 {value|filter#arg1,arg2}  pass comma-separated arguments
 {value|filter#'quoted',"args"}  arguments may be quoted and escaped
+{value|filter1|filter2}  chain multiple filters in sequence
 \{literal\}            use backslash to escape `{`, `}`, and `\`
 ```
 
-Slots and filters are trimmed, so `{ name | upper }` is valid. Filter arguments keep internal spacing unless quoted.
+Slots and filters are trimmed, so `{ name | upper }` is valid. Filter arguments keep internal spacing unless quoted. Multiple filters can be chained using the pipe (`|`) operator and are applied left-to-right.
 
 ## Built-in Filters
 
@@ -52,10 +62,15 @@ Slots and filters are trimmed, so `{ name | upper }` is valid. Filter arguments 
 | --- | --- |
 | `upper` | Uppercase string conversion |
 | `lower` | Lowercase string conversion |
+| `trim` | Remove whitespace from both ends of string |
+| `slice` | Extract substring with start and optional end positions |
+| `wrap` | Wrap string with prefix and optional suffix |
 | `json` | `JSON.stringify(value)`; supply `{slot|json#4}` (or any non-negative integer) to pretty-print |
 | `path` | Traverse nested structures via dot notation with optional fallback `{user|path#profile.email,'n/a'}` |
 | `pad` | Right-pad value to a length: `{id|pad#5,0}` → `00042` |
 | `fixed` | Format numbers with fixed decimals: `{price|fixed#2}` |
+| `map` | Transform array elements using template expressions with variable substitution |
+| `join` | Join array elements into a string with optional separator |
 
 Custom filters are merged into the policy; built-ins remain available unless explicitly overwritten.
 
@@ -88,6 +103,73 @@ const deepData = {
   } 
 };
 deepTemplate.render(deepData); // "Title: Getting Started"
+```
+
+## New Filters Examples
+
+### String Manipulation Filters
+
+```ts
+// trim: Remove whitespace
+const trimTemplate = loom.compile('clean={text|trim}');
+trimTemplate.render({ text: '  hello world  ' }); // "clean=hello world"
+
+// slice: Extract substrings
+const sliceTemplate = loom.compile('part={text|slice#6} first={text|slice#0,5}');
+sliceTemplate.render({ text: 'hello world' }); // "part=world first=hello"
+
+// wrap: Add prefix/suffix
+const wrapTemplate = loom.compile('result={text|wrap#"[","]"}');
+wrapTemplate.render({ text: 'content' }); // "result=[content]"
+
+// wrap with same prefix/suffix
+const starTemplate = loom.compile('result={text|wrap#"*"}');
+starTemplate.render({ text: 'content' }); // "result=*content*"
+```
+
+### Array Processing Filters
+
+```ts
+// map: Transform array elements
+const listTemplate = loom.compile('items={items|map#item => - $item.title$ ($item.qty$)\\n}');
+const items = [
+  { title: 'Apple', qty: 5 },
+  { title: 'Orange', qty: 3 }
+];
+listTemplate.render({ items });
+// Result: "items=- Apple (5)\n- Orange (3)\n"
+
+// join: Combine array elements
+const joinTemplate = loom.compile('list={names|join#", "}');
+joinTemplate.render({ names: ['Alice', 'Bob', 'Charlie'] });
+// Result: "list=Alice, Bob, Charlie"
+```
+
+### Filter Chaining
+
+Filters can be chained together using the pipe (`|`) operator:
+
+```ts
+// Chain multiple filters
+const chainTemplate = loom.compile('result={text|trim|upper|wrap#">>>","<<<"}');
+chainTemplate.render({ text: '  hello  ' }); // "result=>>>HELLO<<<"
+
+// Complex array processing with chaining
+const complexTemplate = loom.compile('users={users|map#u => $u.name$|join#", "}');
+const users = [
+  { name: 'Alice' },
+  { name: 'Bob' },
+  { name: 'Charlie' }
+];
+complexTemplate.render({ users }); // "users=Alice, Bob, Charlie"
+
+// Advanced nested processing
+const advancedTemplate = loom.compile('summary={items|map#item => $item.title$: $item.price|fixed#2$|join#" | "}');
+const products = [
+  { title: 'Laptop', price: 999.99 },
+  { title: 'Mouse', price: 29.5 }
+];
+// Note: This requires processing item properties individually
 ```
 
 ## Rendering Policies & Custom Filters
@@ -180,6 +262,14 @@ withPolicy.render({ ctx: { ok: true } });
 // Nested property extraction
 const extractor = loom.compile('Hello, {items|path#0.title}!');
 extractor.render({ items: [{ title: 'world' }] }); // "Hello, world!"
+
+// Filter chaining for data transformation
+const dataProcessor = loom.compile('result={data|map#item => $item$|join#"-"|upper}');
+dataProcessor.render({ data: ['a', 'b', 'c'] }); // "result=A-B-C"
+
+// Multi-step text processing
+const textProcessor = loom.compile('clean={input|trim|slice#0,10|wrap#"[","]"}');
+textProcessor.render({ input: '  Hello, World!  ' }); // "clean=[Hello, Wor]"
 ```
 
 ## Type Safety

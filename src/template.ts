@@ -12,6 +12,7 @@ import type {
   TemplatePartsRaw,
   ResolvedPolicy,
   SlotDescriptor,
+  FilterDescriptor,
 } from './types';
 import { TEMPLATE_BRAND } from './types';
 import { resolvePolicy } from './filters';
@@ -58,13 +59,22 @@ export class CompiledTemplate<S extends string> implements Template<S> {
       }
       const raw = record[slot.name];
       const transformed = rp.transform ? rp.transform(slot, raw) : raw;
-      if (slot.filter) {
-        const f = rp.filters[slot.filter];
-        if (!f) throw new Error(`Unknown filter "${slot.filter}"`);
-        values.push(f(transformed, ...slot.args));
-      } else {
+      const chain = slot.filters ?? (slot.filter
+        ? ([{ name: slot.filter, args: slot.args }] as readonly FilterDescriptor[])
+        : undefined);
+
+      if (!chain || chain.length === 0) {
         values.push(transformed);
+        continue;
       }
+
+      let current = transformed;
+      for (const segment of chain) {
+        const filterFn = rp.filters[segment.name];
+        if (!filterFn) throw new Error(`Unknown filter "${segment.name}"`);
+        current = filterFn(current, ...segment.args);
+      }
+      values.push(current);
     }
     return values;
   }

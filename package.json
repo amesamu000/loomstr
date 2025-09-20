@@ -1,6 +1,6 @@
 {
   "name": "loomstr",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A fast, lightweight TypeScript template engine with slot-based interpolation and powerful filtering",
   "main": "dist/src/loomstr.js",
   "types": "dist/src/loomstr.d.ts",
@@ -20,7 +20,7 @@
   ],
   "scripts": {
     "build": "tsc",
-    "test": "tsc --noEmit && tsx test/acceptance.test.ts",
+    "test": "tsc --noEmit && npm run test:unit",
     "test:unit": "tsx test/unit.test.ts",
     "test:integration": "tsx test/integration.test.ts",
     "test:performance": "tsx test/performance.test.ts",

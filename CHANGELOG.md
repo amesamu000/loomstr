@@ -8,6 +8,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Filter Chaining**: Filters can now be chained using multiple pipe operators
+  - Syntax: `{value|filter1|filter2|filter3}` applies filters left-to-right
+  - Full parser support for unlimited filter chains
+  - Comprehensive TypeScript support for chained filters
+  - Extensive test coverage for complex chaining scenarios
+
+- **New String Manipulation Filters**:
+  - `trim`: Remove whitespace from both ends of string
+  - `slice`: Extract substring with start and optional end positions
+    - Usage: `{text|slice#6}` or `{text|slice#0,5}`
+  - `wrap`: Wrap string with prefix and optional suffix
+    - Usage: `{text|wrap#"[","]"}` or `{text|wrap#"*"}` (same prefix/suffix)
+
+- **Enhanced Array Processing Filters**:
+  - `map`: Transform array elements using template expressions
+    - Syntax: `{items|map#item => - $item.title$ x$item.qty$\n}`
+    - Supports property access with `$variable.property$` syntax
+    - Returns arrays that can be chained with other filters
+  - `join`: Join array elements with optional separator
+    - Usage: `{array|join#", "}` or `{array|join}` (no separator)
+    - Works standalone or chained after map filter
+
+- **Advanced Template Examples**: Added comprehensive examples showing:
+  - Filter chaining for complex data transformations
+  - Array processing with map and join combinations
+  - Multi-step text processing workflows
+  - Real-world use cases for all new filters
+
+### Enhanced
+- **Parser Infrastructure**: Complete rewrite to support filter chaining
+  - Updated `FilterDescriptor` interface for chain support
+  - Enhanced slot parsing to handle multiple filter segments
+  - Improved error handling for malformed filter chains
+  
+### Fixed
+- **Template Parsing**: Improved escape sequence handling in map filter templates
+  - Fixed `\n` and `\t` processing in template expressions
+  - Better handling of complex template arguments
+  
+### Known Issues
+- Parser has limitations with quoted strings containing spaces in filter arguments
+  - Workaround: Use quotes without spaces or escape sequences where possible
+  - This will be addressed in a future release
+
+### Previous Releases
+
 - **Path Filter**: New built-in `path` filter for deep object and array traversal
   - Supports dot notation for nested property access: `{user|path#profile.name}`
   - Array index access: `{items|path#0.title}`

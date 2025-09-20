@@ -60,6 +60,16 @@ export type ExactParamsFor<
 export type FilterFn = (value: unknown, ...args: string[]) => unknown;
 
 /**
+ * Single filter invocation with its arguments inside a slot's filter chain.
+ */
+export interface FilterDescriptor {
+  /** Filter name as referenced in the template (e.g., "upper") */
+  readonly name: string;
+  /** Arguments supplied to the filter (parsed and trimmed) */
+  readonly args: readonly string[];
+}
+
+/**
  * Policy configuration for template rendering behavior.
  * Defines custom filters, transforms, and string conversion.
  */
@@ -86,16 +96,21 @@ export interface ResolvedPolicy {
 }
 
 /**
- * Describes a template slot with its name, filter, and arguments.
- * Parsed from patterns like {name|filter:arg1:arg2}
+ * Describes a template slot with its name, filter chain, and arguments.
+ * Parsed from patterns like {name|filter#arg1,arg2}
  */
 export interface SlotDescriptor {
   /** The slot name (e.g., "user" from "{user|upper}") */
   readonly name: string;
   /** The filter name if present (e.g., "upper" from "{user|upper}") */
   readonly filter?: string;
-  /** Filter arguments if present (e.g., ["2", "0"] from "{num|pad:2:0}") */
+  /**
+   * Legacy alias for the first filter's arguments.
+   * For chained filters this mirrors filters[0].args for backward compatibility.
+   */
   readonly args: readonly string[];
+  /** Ordered filter chain applied to the slot value (includes the first filter) */
+  readonly filters?: readonly FilterDescriptor[];
 }
 
 /**

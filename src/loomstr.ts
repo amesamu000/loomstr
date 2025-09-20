@@ -24,6 +24,7 @@
 export type {
   SlotKeys,
   FilterFn,
+  FilterDescriptor,
   TemplatePolicy,
   SlotDescriptor,
   TemplateParts,
@@ -111,5 +112,5 @@ const loom = {
 export default loom;
 
 // CommonJS compatibility
-module.exports = loom;
-module.exports.default = loom;
+//module.exports = loom;
+//module.exports.default = loom;
